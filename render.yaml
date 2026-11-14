@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: assetdna
+    runtime: docker
+    plan: starter          # persistent disks need a paid plan; "free" works but data resets on every deploy/restart
+    healthCheckPath: /api/auth/me
+    envVars:
+      - key: PORT
+        value: "10000"
+    disk:
+      name: assetdna-data
+      mountPath: /data
+      sizeGB: 1

@@ -4,8 +4,9 @@ import base64,hashlib,hmac,json,secrets,mimetypes,os,re,sqlite3,subprocess,tempf
 from datetime import datetime,timezone
 from http.server import BaseHTTPRequestHandler,ThreadingHTTPServer
 from urllib.parse import unquote
+os.makedirs(os.path.dirname(os.environ.get("ASSETDNA_DB","")) or ".",exist_ok=True)
 HERE=os.path.dirname(os.path.abspath(__file__));DB=os.environ.get("ASSETDNA_DB",os.path.join(HERE,"assetdna.db"))
-UP=os.path.join(HERE,"uploads");DIST=os.path.normpath(os.path.join(HERE,"..","dist"));Z="0"*64;LOCK=threading.RLock()
+UP=os.environ.get("ASSETDNA_UPLOADS",os.path.join(HERE,"uploads"));DIST=os.path.normpath(os.path.join(HERE,"..","dist"));Z="0"*64;LOCK=threading.RLock()
 ROLES={"maintenance":"Amina Yusuf","procurement":"Tunde Bello","finance":"Grace Obi","admin":"System Admin","auditor":"Chief Auditor"}
 con=sqlite3.connect(DB,check_same_thread=False);con.row_factory=sqlite3.Row
 if "email" not in [c["name"] for c in con.execute("pragma table_info(users)")]:con.execute("drop table if exists users")

@@ -8,12 +8,14 @@ COPY public ./public
 COPY src ./src
 RUN npm run build
 
-# Stage 2: Python API (stdlib only) + Tesseract for Ledger Rescue OCR
+# Stage 2: Python API + Tesseract (Ledger Rescue OCR) + PostgreSQL driver
 FROM python:3.12-slim
 RUN apt-get update && apt-get install -y --no-install-recommends tesseract-ocr && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
 COPY server ./server
 COPY --from=web /app/dist ./dist
-ENV ASSETDNA_DB=/data/assetdna.db ASSETDNA_UPLOADS=/data/uploads PYTHONUNBUFFERED=1
+ENV PYTHONUNBUFFERED=1
 EXPOSE 10000
 CMD ["python", "server/server.py"]

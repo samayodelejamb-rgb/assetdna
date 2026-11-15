@@ -13,10 +13,14 @@ async function api(path,body,quiet){
 export async function refresh(){if(!me)return;try{const n={...await api("/state"),offline:false};if(JSON.stringify(n)!==JSON.stringify(state)){state=n;ping()}}catch(e){if(e instanceof TypeError&&!state.offline){state={...state,offline:true};ping()}}}
 async function loadMe(){try{me=(await api("/auth/me")).user}catch{me=null;state={...state,offline:true}}ping();refresh()}
 export async function signIn(email,password){const j=await api("/auth/signin",{email,password},true);me=j.user;state={...state,offline:false};ping();await refresh();return j.user}
-export const signUp=d=>api("/auth/signup",d,true);
+export async function signUp(d){const j=await api("/auth/signup",d,true);if(j.user){me=j.user;state={...state,offline:false};ping();await refresh()}return j}
+export const changePassword=(current,password)=>api("/auth/password",{current,password},true);
+export const createUser=async d=>{await api("/users",d,true);await refresh()};
+export const resetPassword=(email,password)=>api(`/users/${encodeURIComponent(email)}/password`,{password});
 export async function signOut(){try{await api("/auth/signout",{},true)}catch{}me=null;state=empty;ping()}
 const act=async(p,b)=>{const j=await api(p,b);await refresh();return j};
-export const submit=(d,files=[])=>act("/subs",{name:d.name,location:d.location,cost:+d.cost,files});
+export const submit=(d,files=[])=>act("/subs",{name:d.name,category:d.category,dept:d.dept,location:d.location,cost:+d.cost,files});
+export const getConfig=async()=>{try{return await api("/config")}catch{return {demo:false}}};
 export const decide=(id,kind,note="")=>act(`/subs/${id}/decide`,{kind,note});
 export const verifyCost=id=>act(`/subs/${id}/verify`,{});
 export const saveDocs=id=>act(`/subs/${id}/save`,{});

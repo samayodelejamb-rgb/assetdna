@@ -1,6 +1,6 @@
-import {useState} from "react";
+import {useState,useEffect} from "react";
 import {Link,Navigate,useLocation,useNavigate} from "react-router-dom";
-import {ROLES,useMe,signIn,signUp} from "./store";
+import {ROLES,useMe,signIn,signUp,getConfig} from "./store";
 import {Icon} from "./icons";
 export const Brand=()=><Link to="/" style={{textDecoration:"none",color:"inherit"}}><div className="brand">Asset<span>DNA</span></div></Link>;
 const FEATURES=[["scan","Asset passports","Every asset gets a QR label. Scan it to see what it is, where it is, its cost, its maintenance history and who last handled it."],["link","History nobody can quietly rewrite","Each action is stored with the hash of the one before it. Change one record and the chain visibly breaks."],["camera","Ledger Rescue","Photograph a page of the old ledger. The rows become draft records, staff correct them, and the labels are ready to print."],["grid","One portal for each office","Procurement, Works, Finance, Admin and Audit each get their own dashboard and only the actions their role allows."]];
@@ -20,21 +20,24 @@ export function Home(){const me=useMe();
 function AuthShell({children}){return <div className="auth"><div className="aside"><Brand/><div><h2>Every asset. One trusted record.</h2><p>Scan a label and see the full story of an asset, with a history that can’t be quietly changed.</p></div><small>Team Fly · Hack Global</small></div><div className="form">{children}</div></div>}
 const DEMO=["maintenance","procurement","finance","admin","auditor"],offline="Can’t reach the server. Start it with: python3 server/server.py";
 const Err=({t})=><p style={{color:"var(--bad)",minHeight:22,margin:"4px 0 8px"}}>{t}</p>;
-export function SignIn(){const me=useMe(),nav=useNavigate(),loc=useLocation(),[e,setE]=useState(""),[p,setP]=useState(""),[err,setErr]=useState(""),[busy,setBusy]=useState(false);
+export function SignIn(){const me=useMe(),nav=useNavigate(),loc=useLocation(),[e,setE]=useState(""),[p,setP]=useState(""),[err,setErr]=useState(""),[busy,setBusy]=useState(false),[demo,setDemo]=useState(false),[setup,setSetup]=useState(false);
+ useEffect(()=>{getConfig().then(c=>{setDemo(!!c.demo);setSetup(!!c.setup)})},[]);
  if(me)return <Navigate to={loc.state?.from||`/${me.role}`} replace/>;
  const go=async ev=>{ev.preventDefault();setBusy(true);setErr("");try{const u=await signIn(e.trim(),p);nav(loc.state?.from||`/${u.role}`,{replace:true})}catch(x){setErr(x instanceof TypeError?offline:x.message)}setBusy(false)};
  return <AuthShell><form className="gate" onSubmit={go}><h2>Welcome back</h2><p className="sub">Sign in to your office’s portal.</p>
+ {setup&&<div className="bar">No accounts exist yet. <Link to="/signup">Create the administrator account</Link></div>}
  <label className="f"><span>Email</span><input type="email" value={e} onChange={x=>setE(x.target.value)} autoComplete="username"/></label>
  <label className="f"><span>Password</span><input type="password" value={p} onChange={x=>setP(x.target.value)} autoComplete="current-password"/></label>
  <Err t={err}/><button className="btn lg" disabled={busy}>{busy?"Signing in…":"Sign in"}</button><Link to="/signup">Create an account</Link>
- <details style={{marginTop:18}}><summary className="sub">Demo accounts (password Demo@1234)</summary>{DEMO.map(r=><button type="button" key={r} className="btn o" onClick={()=>{setE(r+"@funaab.edu.ng");setP("Demo@1234")}}>{ROLES[r].label}</button>)}</details></form></AuthShell>}
-export function SignUp(){const me=useMe(),[f,setF]=useState({name:"",email:"",role:"procurement",password:""}),[err,setErr]=useState(""),[done,setDone]=useState(false),[busy,setBusy]=useState(false);
+ {demo&&<details style={{marginTop:18}}><summary className="sub">Demo accounts (password Demo@1234)</summary>{DEMO.map(r=><button type="button" key={r} className="btn o" onClick={()=>{setE(r+"@funaab.edu.ng");setP("Demo@1234")}}>{ROLES[r].label}</button>)}</details>}</form></AuthShell>}
+export function SignUp(){const me=useMe(),[f,setF]=useState({name:"",email:"",role:"procurement",password:""}),[err,setErr]=useState(""),[done,setDone]=useState(false),[busy,setBusy]=useState(false),[setup,setSetup]=useState(false);
+ useEffect(()=>{getConfig().then(c=>setSetup(!!c.setup))},[]);
  if(me)return <Navigate to={`/${me.role}`} replace/>;
  const k=n=>({value:f[n],onChange:x=>setF({...f,[n]:x.target.value})});
  const go=async ev=>{ev.preventDefault();setBusy(true);setErr("");try{await signUp(f);setDone(true)}catch(x){setErr(x instanceof TypeError?offline:x.message)}setBusy(false)};
  if(done)return <AuthShell><div className="gate"><h2>Request sent</h2><p className="sub">An Admin has to approve your account before you can sign in.</p><Link className="btn lg" to="/signin">Go to sign in</Link></div></AuthShell>;
- return <AuthShell><form className="gate" onSubmit={go}><h2>Create an account</h2><p className="sub">Choose your office. An Admin approves new accounts.</p>
+ return <AuthShell><form className="gate" onSubmit={go}><h2>{setup?"Set up AssetDNA":"Create an account"}</h2><p className="sub">{setup?"No accounts exist yet. The first account becomes the Administrator.":"Choose your office. An Admin approves new accounts."}</p>
  <label className="f"><span>Full name</span><input {...k("name")}/></label><label className="f"><span>Email</span><input type="email" {...k("email")}/></label>
- <label className="f"><span>Office</span><select {...k("role")}>{["procurement","maintenance","finance","auditor"].map(r=><option key={r} value={r}>{ROLES[r].label}</option>)}</select></label>
+ {!setup&&<label className="f"><span>Office</span><select {...k("role")}>{["procurement","maintenance","finance","auditor"].map(r=><option key={r} value={r}>{ROLES[r].label}</option>)}</select></label>}
  <label className="f"><span>Password</span><input type="password" placeholder="At least 8 characters" {...k("password")}/></label>
- <Err t={err}/><button className="btn lg" disabled={busy}>{busy?"Sending…":"Request account"}</button><Link to="/signin">I already have an account</Link></form></AuthShell>}
+ <Err t={err}/><button className="btn lg" disabled={busy}>{busy?"Sending…":setup?"Create administrator account":"Request account"}</button><Link to="/signin">I already have an account</Link></form></AuthShell>}

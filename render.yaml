@@ -1,13 +1,23 @@
+# One-click setup: Render dashboard > New > Blueprint > pick this repo > Apply.
+# Creates a free PostgreSQL database and a free web service, and connects them. No env vars to type in.
+databases:
+  - name: assetdna-db
+    databaseName: assetdna
+    user: assetdna
+    region: oregon
+    plan: free
+    ipAllowList: []        # only the web service (internal network) can reach the database
 services:
   - type: web
     name: assetdna
     runtime: docker
-    plan: starter          # persistent disks need a paid plan; "free" works but data resets on every deploy/restart
-    healthCheckPath: /api/auth/me
+    region: oregon
+    plan: free
+    healthCheckPath: /api/config
     envVars:
-      - key: PORT
-        value: "10000"
-    disk:
-      name: assetdna-data
-      mountPath: /data
-      sizeGB: 1
+      - key: DATABASE_URL
+        fromDatabase:
+          name: assetdna-db
+          property: connectionString
+      - key: SEED_DEMO     # "0" = real system, no demo data. The first person to sign up becomes the Administrator.
+        value: "0"
